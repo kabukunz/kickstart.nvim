@@ -979,6 +979,38 @@ do
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
   -- require 'custom.plugins'
+
+-- MY OWN PLUGIN
+
+  -- Add Vimspector
+  vim.pack.add { gh 'puremourning/vimspector' }
+  -- Configure the layout settings BEFORE it loads
+  vim.g.vimspector_enable_mappings = 'HUMAN'
+
+  -- Add Neogit
+  vim.cmd.packadd("diffview.nvim")
+  vim.cmd.packadd("neogit")
+
+  -- 2. Safely initialize Diffview
+  local status_diff, diffview = pcall(require, "diffview")
+  if status_diff then
+    diffview.setup({})
+  end
+
+  -- 3. Safely initialize Neogit
+  local status_neogit, neogit = pcall(require, "neogit")
+  if status_neogit then
+    neogit.setup({
+      kind = "floating",
+      integrations = { diffview = true }
+    })
+
+    -- 4. Map your shortcut
+    vim.keymap.set("n", "<leader>gg", neogit.open, { desc = "Open Neo[G]it Dashboard" })
+  end
+
+-- MY OWN PLUGIN
+
 end
 
 -- The line beneath this is called `modeline`. See `:help modeline`
