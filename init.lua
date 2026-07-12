@@ -465,7 +465,7 @@ do
   --
   -- The easiest way to use Telescope, is to start by doing something like:
   --  :Telescope help_tags
-  --
+
   -- After running this command, a window will open up and you're able to
   -- type in the prompt window. You'll see a list of `help_tags` options and
   -- a corresponding preview of the help.
@@ -780,10 +780,12 @@ do
   require('conform').setup {
     notify_on_error = false,
     format_on_save = function(bufnr)
-      -- You can specify filetypes to autoformat on save here:
+      -- 1. Added python here to trigger autoformat-on-save
       local enabled_filetypes = {
-        -- lua = true,
-        -- python = true,
+        lua = true,
+        cpp = true,
+        c = true,
+        python = true,
       }
       if enabled_filetypes[vim.bo[bufnr].filetype] then
         return { timeout_ms = 500 }
@@ -792,20 +794,23 @@ do
       end
     end,
     default_format_opts = {
-      lsp_format = 'fallback', -- Use external formatters if configured below, otherwise use LSP formatting. Set to `false` to disable LSP formatting entirely.
+      lsp_format = 'fallback',
     },
-    -- You can also specify external formatters in here.
+    -- 2. Added sequential Python formatting (isort sorts imports first, then black formats)
     formatters_by_ft = {
-      -- rust = { 'rustfmt' },
-      -- Conform can also run multiple formatters sequentially
-      -- python = { "isort", "black" },
-      --
-      -- You can use 'stop_after_first' to run the first available formatter from the list
-      -- javascript = { "prettierd", "prettier", stop_after_first = true },
+      lua = { 'stylua' },
+      cpp = { 'clang-format' },
+      c = { 'clang-format' },
+      python = { 'isort', 'black' },
     },
   }
 
-  vim.keymap.set({ 'n', 'v' }, '<leader>f', function() require('conform').format { async = true } end, { desc = '[F]ormat buffer' })
+  vim.keymap.set(
+    { 'n', 'v' },
+    '<leader>f',
+    function() require('conform').format { async = false, timeout_ms = 500 } end,
+    { desc = '[F]ormat buffer or selection' }
+  )
 end
 
 -- ============================================================
@@ -883,7 +888,9 @@ do
     -- the rust implementation via `'prefer_rust_with_warning'`
     --
     -- See `:help blink-cmp-config-fuzzy` for more information
-    fuzzy = { implementation = 'lua' },
+    --
+    --fuzzy = { implementation = 'lua' },
+    fuzzy = { implementation = 'prefer_rust_with_warning' },
 
     -- Shows a signature help window while you type arguments for a function
     signature = { enabled = true },
@@ -977,6 +984,54 @@ do
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
   -- require 'custom.plugins'
+
+  -- MY OWN PLUGIN
+
+  -- Add Vimspector
+  vim.pack.add { gh 'puremourning/vimspector' }
+  -- Configure the layout settings BEFORE it loads
+
+  -- 1. Turn OFF the 'HUMAN' F-key presets completely
+  vim.g.vimspector_enable_mappings = ''
+
+  -- 2. Map your own custom ergonomic keys right below it
+  local map = vim.keymap.set
+
+  -- Lifecycle & Launch
+  map('n', '<leader>dd', '<cmd>call vimspector#Launch()<cr>', { desc = 'Debug: Start/Continue' })
+  map('n', '<leader>dq', '<cmd>call vimspector#Reset()<cr>', { desc = 'Debug: Stop/Quit Session' })
+  map('n', '<leader>dr', '<cmd>call vimspector#Restart()<cr>', { desc = 'Debug: Restart Session' })
+
+  -- Breakpoints
+  map('n', '<leader>db', '<cmd>call vimspector#ToggleBreakpoint()<cr>', { desc = 'Debug: Toggle Breakpoint' })
+  map('n', '<leader>dB', '<cmd>call vimspector#ClearBreakpoints()<cr>', { desc = 'Debug: Clear All Breakpoints' })
+
+  -- Stepping through code (No F-keys required!)
+  map('n', '<leader>dn', '<cmd>call vimspector#StepOver()<cr>', { desc = 'Debug: Step [N]ext Line' })
+  map('n', '<leader>di', '<cmd>call vimspector#StepInto()<cr>', { desc = 'Debug: Step [I]nto Function' })
+  map('n', '<leader>do', '<cmd>call vimspector#StepOut()<cr>', { desc = 'Debug: Step [O]ut of Function' })
+
+  -- Add Neogit
+  vim.cmd.packadd 'diffview.nvim'
+  vim.cmd.packadd 'neogit'
+
+  -- 2. Safely initialize Diffview
+  local status_diff, diffview = pcall(require, 'diffview')
+  if status_diff then diffview.setup {} end
+
+  -- 3. Safely initialize Neogit
+  local status_neogit, neogit = pcall(require, 'neogit')
+  if status_neogit then
+    neogit.setup {
+      kind = 'floating',
+      integrations = { diffview = true },
+    }
+
+    -- 4. Map your shortcut
+    vim.keymap.set('n', '<leader>gg', neogit.open, { desc = 'Open Neo[G]it Dashboard' })
+  end
+
+  -- MY OWN PLUGIN
 end
 
 -- The line beneath this is called `modeline`. See `:help modeline`
